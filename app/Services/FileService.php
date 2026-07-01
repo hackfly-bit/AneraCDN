@@ -8,8 +8,8 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class FileService
 {
@@ -17,7 +17,7 @@ class FileService
 
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     /**
@@ -29,7 +29,7 @@ class FileService
         $originalName = $uploadedFile->getClientOriginalName();
         $extension = $uploadedFile->getClientOriginalExtension();
         $filename = pathinfo($originalName, PATHINFO_FILENAME);
-        $uniqueFilename = Str::slug($filename) . '_' . time() . '.' . $extension;
+        $uniqueFilename = Str::slug($filename).'_'.time().'.'.$extension;
 
         // Determine storage path
         $storagePath = $folder ? "files/{$folder}/{$uniqueFilename}" : "files/{$uniqueFilename}";
@@ -41,8 +41,8 @@ class FileService
         // Calculate file hash for deduplication
         $hash = hash_file('sha256', $uploadedFile->getPathname());
 
-        // Check if file already exists
-        $existingFile = File::where('hash', $hash)->first();
+        // Check if file already exists for this user
+        $existingFile = File::where('hash', $hash)->where('user_id', $userId)->first();
         if ($existingFile) {
             // Delete the newly uploaded file since we have a duplicate
             Storage::disk($disk)->delete($path);
@@ -50,7 +50,7 @@ class FileService
             // Log activity
             $this->logActivity($existingFile->id, $userId, FileActivity::ACTION_UPLOAD, [
                 'duplicate' => true,
-                'original_name' => $originalName
+                'original_name' => $originalName,
             ]);
 
             return $existingFile;
@@ -85,7 +85,7 @@ class FileService
         // Log activity
         $this->logActivity($file->id, $userId, FileActivity::ACTION_UPLOAD, [
             'original_name' => $originalName,
-            'size' => $uploadedFile->getSize()
+            'size' => $uploadedFile->getSize(),
         ]);
 
         return $file;
@@ -96,13 +96,13 @@ class FileService
      */
     public function generateThumbnail(File $file, $width = 300, $height = 300)
     {
-        if (!$this->isImage($file->mime_type)) {
+        if (! $this->isImage($file->mime_type)) {
             return false;
         }
 
         try {
             $originalPath = Storage::disk($file->disk)->path($file->path);
-            $thumbnailPath = 'thumbnails/' . pathinfo($file->path, PATHINFO_FILENAME) . '_thumb.jpg';
+            $thumbnailPath = 'thumbnails/'.pathinfo($file->path, PATHINFO_FILENAME).'_thumb.jpg';
 
             $image = $this->imageManager->read($originalPath);
             $image->resize($width, $height, function ($constraint) {
@@ -114,7 +114,7 @@ class FileService
 
             // Ensure directory exists
             $directory = dirname($thumbnailFullPath);
-            if (!file_exists($directory)) {
+            if (! file_exists($directory)) {
                 mkdir($directory, 0755, true);
             }
 
@@ -124,7 +124,8 @@ class FileService
 
             return true;
         } catch (\Exception $e) {
-            Log::error('Thumbnail generation failed: ' . $e->getMessage());
+            Log::error('Thumbnail generation failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -134,13 +135,13 @@ class FileService
      */
     public function generateWebP(File $file)
     {
-        if (!$this->isImage($file->mime_type)) {
+        if (! $this->isImage($file->mime_type)) {
             return false;
         }
 
         try {
             $originalPath = Storage::disk($file->disk)->path($file->path);
-            $webpPath = 'webp/' . pathinfo($file->path, PATHINFO_FILENAME) . '.webp';
+            $webpPath = 'webp/'.pathinfo($file->path, PATHINFO_FILENAME).'.webp';
 
             $image = $this->imageManager->read($originalPath);
 
@@ -148,7 +149,7 @@ class FileService
 
             // Ensure directory exists
             $directory = dirname($webpFullPath);
-            if (!file_exists($directory)) {
+            if (! file_exists($directory)) {
                 mkdir($directory, 0755, true);
             }
 
@@ -156,12 +157,13 @@ class FileService
 
             $file->update([
                 'webp_path' => $webpPath,
-                'is_optimized' => true
+                'is_optimized' => true,
             ]);
 
             return true;
         } catch (\Exception $e) {
-            Log::error('WebP generation failed: ' . $e->getMessage());
+            Log::error('WebP generation failed: '.$e->getMessage());
+
             return false;
         }
     }
@@ -188,7 +190,7 @@ class FileService
         if ($userId) {
             $this->logActivity($file->id, $userId, FileActivity::ACTION_DELETE, [
                 'file_name' => $file->name,
-                'file_size' => $file->size
+                'file_size' => $file->size,
             ]);
         }
 
@@ -240,7 +242,7 @@ class FileService
             'action' => $action,
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ]);
     }
 
@@ -259,7 +261,7 @@ class FileService
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain'
+            'text/plain',
         ])->count();
 
         // Get total downloads
@@ -275,7 +277,7 @@ class FileService
             'image_files' => $imageFiles,
             'video_files' => $videoFiles,
             'document_files' => $documentFiles,
-            'other_files' => $totalFiles - $imageFiles - $videoFiles - $documentFiles
+            'other_files' => $totalFiles - $imageFiles - $videoFiles - $documentFiles,
         ];
     }
 
@@ -290,6 +292,6 @@ class FileService
             $bytes /= 1024;
         }
 
-        return round($bytes, $precision) . ' ' . $units[$i];
+        return round($bytes, $precision).' '.$units[$i];
     }
 }

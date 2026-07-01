@@ -3,44 +3,26 @@
 @section('title', 'Profile')
 
 @section('content')
-{{-- <div class="container-fluid"> --}}
-    <div class="row">
-        <div class="col-12 pb-4 ">
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Informasi Profile</h5>
-                        </div>
-                        <div class="card-body">
-                            @include('profile.partials.update-profile-information-form')
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Ubah Password</h5>
-                        </div>
-                        <div class="card-body">
-                            @include('profile.partials.update-password-form')
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12">
-                    <div class="card border-danger">
-                        <div class="card-header bg-danger text-white">
-                            <h5 class="card-title mb-0">Hapus Akun</h5>
-                        </div>
-                        <div class="card-body">
-                            @include('profile.partials.delete-user-form')
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="max-w-3xl space-y-6">
+    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="font-semibold">Informasi Profile</h2>
         </div>
+        <div class="p-5">@include('profile.partials.update-profile-information-form')</div>
     </div>
-{{-- </div> --}}
+
+    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="font-semibold">Ubah Password</h2>
+        </div>
+        <div class="p-5">@include('profile.partials.update-password-form')</div>
+    </div>
+
+    <div class="rounded-xl border border-red-200 dark:border-red-900 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="px-5 py-4 border-b border-red-200 dark:border-red-900 bg-red-600 text-white rounded-t-xl">
+            <h2 class="font-semibold">Hapus Akun</h2>
+        </div>
+        <div class="p-5">@include('profile.partials.delete-user-form')</div>
+    </div>
+</div>
 @endsection

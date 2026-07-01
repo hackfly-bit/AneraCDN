@@ -10,7 +10,10 @@ Route::get('/', function () {
 
 // Public file routes
 Route::get('/file/{slug}', [\App\Http\Controllers\FileController::class, 'show'])->name('file.show');
+Route::get('/file/{slug}/view', [\App\Http\Controllers\FileController::class, 'view'])->name('file.view');
 Route::get('/file/{slug}/download', [\App\Http\Controllers\FileController::class, 'download'])->name('file.download');
+Route::get('/file/{slug}/thumbnail', [\App\Http\Controllers\FileController::class, 'thumbnail'])->name('file.thumbnail');
+Route::get('/file/{slug}/webp', [\App\Http\Controllers\FileController::class, 'webp'])->name('file.webp');
 
 // Dashboard routes
 Route::middleware(['auth', 'verified'])->group(function () {

@@ -7,10 +7,11 @@ use App\Models\File;
 use App\Models\FileActivity;
 use App\Services\FileService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class FileController extends Controller
 {
@@ -19,7 +20,7 @@ class FileController extends Controller
     public function __construct(FileService $fileService)
     {
         $this->fileService = $fileService;
-        $this->middleware('auth:sanctum');
+        $this->middleware('auth:sanctum')->except(['download']);
     }
 
     /**
@@ -28,14 +29,14 @@ class FileController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         $query = File::query();
-        
+
         // If not admin, only show user's files
-        if (!$user->canManageAllFiles()) {
+        if (! $user->canManageAllFiles()) {
             $query->where('user_id', $user->id);
         }
-        
+
         $files = QueryBuilder::for($query)
             ->allowedFilters([
                 'name',
@@ -54,7 +55,7 @@ class FileController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $files
+            'data' => $files,
         ]);
     }
 
@@ -64,7 +65,7 @@ class FileController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file' => 'required|file|max:' . (config('app.max_file_size', 104857600) / 1024), // Convert to KB
+            'file' => 'required|file|max:'.(config('app.max_file_size', 104857600) / 1024), // Convert to KB
             'folder' => 'nullable|string|max:255',
             'is_public' => 'boolean',
         ]);
@@ -73,26 +74,23 @@ class FileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         // Check if user can upload files
-        if (!$request->user()->canUploadFiles()) {
+        if (! $request->user()->canUploadFiles()) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to upload files'
+                'message' => 'You do not have permission to upload files',
             ], 403);
         }
 
-        // Validate file type
-        $allowedTypes = explode(',', config('app.allowed_file_types', 'jpg,jpeg,png,gif,webp,mp4,avi,mov,pdf,doc,docx,txt,zip'));
-        $fileExtension = strtolower($request->file('file')->getClientOriginalExtension());
-        
-        if (!in_array($fileExtension, $allowedTypes)) {
+        $typeError = $this->fileTypeError($request->file('file'));
+        if ($typeError) {
             return response()->json([
                 'success' => false,
-                'message' => 'File type not allowed. Allowed types: ' . implode(', ', $allowedTypes)
+                'message' => $typeError,
             ], 422);
         }
 
@@ -107,12 +105,12 @@ class FileController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'File uploaded successfully',
-                'data' => $file->load('user:id,name,email')
+                'data' => $file->load('user:id,name,email'),
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'File upload failed: ' . $e->getMessage()
+                'message' => config('app.debug') ? 'File upload failed: '.$e->getMessage() : 'File upload failed',
             ], 500);
         }
     }
@@ -124,7 +122,7 @@ class FileController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'files' => 'required|array',
-            'files.*' => 'required|file|max:' . (config('app.max_file_size', 104857600) / 1024), // Convert to KB
+            'files.*' => 'required|file|max:'.(config('app.max_file_size', 104857600) / 1024), // Convert to KB
             'folder' => 'nullable|string|max:255',
             'visibility' => 'required|in:public,private',
         ]);
@@ -133,28 +131,26 @@ class FileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         // Check if user can upload files
-        if (!$request->user()->canUploadFiles()) {
+        if (! $request->user()->canUploadFiles()) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to upload files'
+                'message' => 'You do not have permission to upload files',
             ], 403);
         }
 
-        $allowedTypes = explode(',', config('app.allowed_file_types', 'jpg,jpeg,png,gif,webp,mp4,avi,mov,pdf,doc,docx,txt,zip'));
         $uploadedFiles = [];
         $errors = [];
 
         foreach ($request->file('files') as $index => $file) {
-            // Validate file type
-            $fileExtension = strtolower($file->getClientOriginalExtension());
-            
-            if (!in_array($fileExtension, $allowedTypes)) {
-                $errors[] = "File {$file->getClientOriginalName()}: File type not allowed";
+            $typeError = $this->fileTypeError($file);
+            if ($typeError) {
+                $errors[] = "File {$file->getClientOriginalName()}: {$typeError}";
+
                 continue;
             }
 
@@ -172,19 +168,19 @@ class FileController extends Controller
             }
         }
 
-        if (empty($uploadedFiles) && !empty($errors)) {
+        if (empty($uploadedFiles) && ! empty($errors)) {
             return response()->json([
                 'success' => false,
                 'message' => 'All files failed to upload',
-                'errors' => $errors
+                'errors' => $errors,
             ], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => count($uploadedFiles) . ' file(s) uploaded successfully',
+            'message' => count($uploadedFiles).' file(s) uploaded successfully',
             'data' => $uploadedFiles,
-            'errors' => $errors
+            'errors' => $errors,
         ], 201);
     }
 
@@ -194,25 +190,25 @@ class FileController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        
+
         $file = File::with('user:id,name,email', 'activities.user:id,name')
             ->where(function ($query) use ($id) {
                 $query->where('id', $id)->orWhere('slug', $id);
             })
             ->first();
 
-        if (!$file) {
+        if (! $file) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found'
+                'message' => 'File not found',
             ], 404);
         }
 
         // Check permissions
-        if (!$user->canManageAllFiles() && $file->user_id !== $user->id) {
+        if (! $user->canManageAllFiles() && $file->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to view this file'
+                'message' => 'You do not have permission to view this file',
             ], 403);
         }
 
@@ -222,12 +218,12 @@ class FileController extends Controller
             'user_id' => $user->id,
             'action' => FileActivity::ACTION_VIEW,
             'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent()
+            'user_agent' => $request->userAgent(),
         ]);
 
         return response()->json([
             'success' => true,
-            'data' => $file
+            'data' => $file,
         ]);
     }
 
@@ -237,23 +233,23 @@ class FileController extends Controller
     public function update(Request $request, $id)
     {
         $user = $request->user();
-        
+
         $file = File::where(function ($query) use ($id) {
             $query->where('id', $id)->orWhere('slug', $id);
         })->first();
 
-        if (!$file) {
+        if (! $file) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found'
+                'message' => 'File not found',
             ], 404);
         }
 
         // Check permissions
-        if (!$user->canManageAllFiles() && $file->user_id !== $user->id) {
+        if (! $user->canManageAllFiles() && $file->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to update this file'
+                'message' => 'You do not have permission to update this file',
             ], 403);
         }
 
@@ -267,12 +263,12 @@ class FileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $oldData = $file->only(['display_name', 'folder', 'is_public']);
-        
+
         $file->update($request->only(['display_name', 'folder', 'is_public']));
 
         // Log update activity
@@ -284,14 +280,14 @@ class FileController extends Controller
             'user_agent' => $request->userAgent(),
             'metadata' => [
                 'old_data' => $oldData,
-                'new_data' => $file->only(['display_name', 'folder', 'is_public'])
-            ]
+                'new_data' => $file->only(['display_name', 'folder', 'is_public']),
+            ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'File updated successfully',
-            'data' => $file->fresh()->load('user:id,name,email')
+            'data' => $file->fresh()->load('user:id,name,email'),
         ]);
     }
 
@@ -301,23 +297,23 @@ class FileController extends Controller
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
-        
+
         $file = File::where(function ($query) use ($id) {
             $query->where('id', $id)->orWhere('slug', $id);
         })->first();
 
-        if (!$file) {
+        if (! $file) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found'
+                'message' => 'File not found',
             ], 404);
         }
 
         // Check permissions
-        if (!$user->canDeleteFiles() && $file->user_id !== $user->id) {
+        if (! $user->canDeleteFiles() && $file->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to delete this file'
+                'message' => 'You do not have permission to delete this file',
             ], 403);
         }
 
@@ -326,12 +322,12 @@ class FileController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'File deleted successfully'
+                'message' => 'File deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'File deletion failed: ' . $e->getMessage()
+                'message' => config('app.debug') ? 'File deletion failed: '.$e->getMessage() : 'File deletion failed',
             ], 500);
         }
     }
@@ -343,29 +339,29 @@ class FileController extends Controller
     {
         $file = File::where('slug', $slug)->first();
 
-        if (!$file) {
+        if (! $file) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found'
+                'message' => 'File not found',
             ], 404);
         }
 
         // Check if file is public or user has permission
-        if (!$file->is_public) {
+        if (! $file->is_public) {
             $user = $request->user();
-            if (!$user || (!$user->canManageAllFiles() && $file->user_id !== $user->id)) {
+            if (! $user || (! $user->canManageAllFiles() && $file->user_id !== $user->id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You do not have permission to download this file'
+                    'message' => 'You do not have permission to download this file',
                 ], 403);
             }
         }
 
         // Check if file exists
-        if (!Storage::disk($file->disk)->exists($file->path)) {
+        if (! Storage::disk($file->disk)->exists($file->path)) {
             return response()->json([
                 'success' => false,
-                'message' => 'File not found on storage'
+                'message' => 'File not found on storage',
             ], 404);
         }
 
@@ -378,7 +374,7 @@ class FileController extends Controller
             'user_id' => $request->user()?->id,
             'action' => FileActivity::ACTION_DOWNLOAD,
             'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent()
+            'user_agent' => $request->userAgent(),
         ]);
 
         return Storage::disk($file->disk)->download($file->path, $file->name);
@@ -389,10 +385,10 @@ class FileController extends Controller
      */
     public function stats(Request $request)
     {
-        if (!$request->user()->hasPermissionTo('view dashboard stats')) {
+        if (! $request->user()->hasPermissionTo('view dashboard stats')) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission to view statistics'
+                'message' => 'You do not have permission to view statistics',
             ], 403);
         }
 
@@ -400,7 +396,37 @@ class FileController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $stats
+            'data' => $stats,
         ]);
+    }
+
+    private function allowedMimesRule(): string
+    {
+        return implode(',', array_map('trim', explode(',', config('app.allowed_file_types'))));
+    }
+
+    private function fileTypeError(?UploadedFile $file): ?string
+    {
+        if (! $file) {
+            return 'No file uploaded';
+        }
+
+        $allowedTypes = array_map('trim', explode(',', config('app.allowed_file_types')));
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (! in_array($extension, $allowedTypes)) {
+            return 'File type not allowed. Allowed types: '.implode(', ', $allowedTypes);
+        }
+
+        $mimeValidator = Validator::make(
+            ['file' => $file],
+            ['file' => 'file|mimes:'.$this->allowedMimesRule()]
+        );
+
+        if ($mimeValidator->fails()) {
+            return 'File content does not match its extension';
+        }
+
+        return null;
     }
 }

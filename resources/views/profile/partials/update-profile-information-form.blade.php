@@ -1,59 +1,35 @@
 <div>
-    <p class="text-muted mb-4">
-        {{ __("Update your account's profile information and email address.") }}
-    </p>
+    <p class="text-slate-600 dark:text-slate-400 mb-4">{{ __("Update your account's profile information and email address.") }}</p>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
-        @csrf
-    </form>
+    <form id="send-verification" method="post" action="{{ route('verification.send') }}">@csrf</form>
 
-    <form method="post" action="{{ route('profile.update') }}">
+    <form method="post" action="{{ route('profile.update') }}" class="space-y-4">
         @csrf
         @method('patch')
-
-        <div class="mb-3">
-            <label for="name" class="form-label">{{ __('Name') }}</label>
-            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" 
-                   value="{{ old('name', $user->name) }}" required autofocus autocomplete="name">
-            @error('name')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
+        <div>
+            <label for="name" class="block text-sm font-medium mb-1">{{ __('Name') }}</label>
+            <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name"
+                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm @error('name') border-red-500 @enderror">
+            @error('name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
         </div>
-
-        <div class="mb-3">
-            <label for="email" class="form-label">{{ __('Email') }}</label>
-            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" 
-                   value="{{ old('email', $user->email) }}" required autocomplete="username">
-            @error('email')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-
+        <div>
+            <label for="email" class="block text-sm font-medium mb-1">{{ __('Email') }}</label>
+            <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}" required autocomplete="username"
+                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm @error('email') border-red-500 @enderror">
+            @error('email')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-2">
-                    <div class="alert alert-warning">
-                        <small>
-                            {{ __('Your email address is unverified.') }}
-                            <button type="submit" form="send-verification" class="btn btn-link p-0 align-baseline">
-                                {{ __('Click here to re-send the verification email.') }}
-                            </button>
-                        </small>
-                    </div>
-
-                    @if (session('status') === 'verification-link-sent')
-                        <div class="alert alert-success">
-                            <small>{{ __('A new verification link has been sent to your email address.') }}</small>
-                        </div>
-                    @endif
-                </div>
+            <div class="mt-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 p-3 text-sm">
+                {{ __('Your email address is unverified.') }}
+                <button type="submit" form="send-verification" class="text-indigo-600 dark:text-indigo-400 underline">{{ __('Click here to re-send the verification email.') }}</button>
+            </div>
+            @if (session('status') === 'verification-link-sent')
+            <p class="mt-2 text-sm text-emerald-600 dark:text-emerald-400">{{ __('A new verification link has been sent to your email address.') }}</p>
+            @endif
             @endif
         </div>
-
-        <div class="d-flex align-items-center gap-3">
-            <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
-
-            @if (session('status') === 'profile-updated')
-                <small class="text-success">{{ __('Saved.') }}</small>
-            @endif
+        <div class="flex items-center gap-3">
+            <button type="submit" class="inline-flex px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">{{ __('Save') }}</button>
+            @if (session('status') === 'profile-updated')<span class="text-sm text-emerald-600 dark:text-emerald-400">{{ __('Saved.') }}</span>@endif
         </div>
     </form>
 </div>

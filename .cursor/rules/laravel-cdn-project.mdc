@@ -1,0 +1,48 @@
+---
+description: Laravel CDN project context, stack, and architecture conventions
+alwaysApply: true
+---
+
+# Laravel CDN — Project Context
+
+CDN / file management platform: upload, optimize, store, and serve files with RBAC and REST API.
+
+| Layer | Stack |
+|-------|-------|
+| Backend | Laravel 12, PHP 8.4 |
+| Database | MySQL (primary), Redis (cache/queue) |
+| Auth | Laravel Breeze (web), Sanctum (API), Spatie Permission |
+| Frontend | Blade + Alpine.js + Tailwind CSS 3 + Vite |
+| Images | Intervention Image 3 (GD), WebP conversion, thumbnails |
+| API | REST `/api/*` — Sanctum bearer tokens + API keys |
+
+## Architecture
+
+- **Web controllers** — `app/Http/Controllers/` (Breeze auth, dashboard, file browser)
+- **API controllers** — `app/Http/Controllers/Api/` (JSON CRUD, upload, download)
+- **Business logic** — `app/Services/FileService.php` (upload, dedup, optimize, thumbnails)
+- **Policies** — Spatie roles (`admin`, `user`) + `ApiKeyPolicy`
+- **Query filtering** — `spatie/laravel-query-builder` on API list endpoints
+
+## Core DO
+
+- Put file/storage logic in `FileService`, not controllers.
+- Use Form Requests for validation where Breeze pattern exists; match sibling style.
+- Use Spatie Permission for authorization (`canManageAllFiles()`, policies).
+- Public files on `public` disk; private on `local` disk with signed URLs.
+- Log file actions via `FileActivity` model.
+- Run `vendor/bin/pint --dirty` before finalizing PHP changes.
+
+## Core DON'T
+
+- Don't bypass `FileService` for upload/delete/optimize flows.
+- Don't use `env()` outside config files.
+- Don't add dependencies without approval.
+- Don't create docs unless explicitly requested.
+
+## Key paths
+
+- `routes/api.php` — Sanctum-protected file API + public download
+- `routes/web.php` — Dashboard, API key management, file preview
+- `app/Http/Middleware/FileAccessMiddleware.php` — secure file serving
+- `app/Helpers/SignedUrlHelper.php` — private file URLs

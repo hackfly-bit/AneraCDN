@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class File extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'display_name',
@@ -28,7 +30,7 @@ class File extends Model
         'user_id',
         'folder',
         'download_count',
-        'last_accessed_at'
+        'last_accessed_at',
     ];
 
     protected $casts = [
@@ -37,13 +39,13 @@ class File extends Model
         'is_optimized' => 'boolean',
         'last_accessed_at' => 'datetime',
         'size' => 'integer',
-        'download_count' => 'integer'
+        'download_count' => 'integer',
     ];
 
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($file) {
             if (empty($file->slug)) {
                 $file->slug = Str::uuid();
@@ -65,47 +67,44 @@ class File extends Model
     // Accessors & Mutators
     public function getUrlAttribute(): string
     {
-        if ($this->is_public) {
-            return Storage::disk($this->disk)->url($this->path);
-        }
-        
-        return route('files.download', $this->slug);
+        return route('file.view', $this->slug);
     }
 
     public function getCdnUrlAttribute(): string
     {
-        $cdnUrl = config('app.cdn_url', config('app.url'));
-        return $cdnUrl . '/storage/' . $this->path;
+        $cdnUrl = rtrim(config('app.cdn_url', config('app.url')), '/');
+
+        return $cdnUrl.route('file.view', $this->slug, false);
     }
 
     public function getThumbnailUrlAttribute(): ?string
     {
-        if (!$this->thumbnail_path) {
+        if (! $this->thumbnail_path) {
             return null;
         }
-        
-        return Storage::disk($this->disk)->url($this->thumbnail_path);
+
+        return route('file.thumbnail', $this->slug);
     }
 
     public function getWebpUrlAttribute(): ?string
     {
-        if (!$this->webp_path) {
+        if (! $this->webp_path) {
             return null;
         }
-        
-        return Storage::disk($this->disk)->url($this->webp_path);
+
+        return route('file.webp', $this->slug);
     }
 
     public function getHumanSizeAttribute(): string
     {
         $bytes = $this->size;
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         for ($i = 0; $bytes > 1024; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     // Scopes
@@ -121,7 +120,7 @@ class File extends Model
 
     public function scopeByMimeType($query, $mimeType)
     {
-        return $query->where('mime_type', 'like', $mimeType . '%');
+        return $query->where('mime_type', 'like', $mimeType.'%');
     }
 
     public function scopeImages($query)
@@ -140,7 +139,7 @@ class File extends Model
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain'
+            'text/plain',
         ]);
     }
 
@@ -167,7 +166,7 @@ class File extends Model
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain'
+            'text/plain',
         ]);
     }
 }

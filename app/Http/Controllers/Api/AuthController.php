@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -17,6 +16,13 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        if (! config('app.api_register_enabled')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'API registration is disabled',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -27,7 +33,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -49,8 +55,8 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user,
                 'token' => $token,
-                'token_type' => 'Bearer'
-            ]
+                'token_type' => 'Bearer',
+            ],
         ], 201);
     }
 
@@ -68,14 +74,14 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ], 401);
         }
 
@@ -88,8 +94,8 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user->load('roles', 'permissions'),
                 'token' => $token,
-                'token_type' => 'Bearer'
-            ]
+                'token_type' => 'Bearer',
+            ],
         ]);
     }
 
@@ -101,8 +107,8 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $request->user()->load('roles', 'permissions')
-            ]
+                'user' => $request->user()->load('roles', 'permissions'),
+            ],
         ]);
     }
 
@@ -115,7 +121,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out successfully'
+            'message' => 'Logged out successfully',
         ]);
     }
 
@@ -128,7 +134,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out from all devices successfully'
+            'message' => 'Logged out from all devices successfully',
         ]);
     }
 
@@ -146,8 +152,8 @@ class AuthController extends Controller
             'message' => 'Token refreshed successfully',
             'data' => [
                 'token' => $token,
-                'token_type' => 'Bearer'
-            ]
+                'token_type' => 'Bearer',
+            ],
         ]);
     }
 }

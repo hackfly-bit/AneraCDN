@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FileController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,8 +16,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public routes
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+if (config('app.api_register_enabled')) {
+    Route::post('/auth/register', [AuthController::class, 'register']);
+}
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:api-login');
 
 // Public file download (for public files)
 Route::get('/files/{slug}/download', [FileController::class, 'download'])->name('files.download');
@@ -32,16 +33,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
     });
-    
+
     // File management routes
-    Route::apiResource('files', FileController::class);
     Route::get('/files/stats', [FileController::class, 'stats']);
-    
+    Route::apiResource('files', FileController::class);
+
     // File upload route for dashboard
     Route::post('/files/upload', [FileController::class, 'upload'])
         ->name('api.files.upload')
         ->middleware('throttle:uploads');
-    
+
     // Rate limiting for file uploads
     Route::post('/files', [FileController::class, 'store'])
         ->middleware('throttle:uploads');
@@ -52,6 +53,6 @@ Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
         'timestamp' => now(),
-        'version' => '1.0.0'
+        'version' => '1.0.0',
     ]);
 });

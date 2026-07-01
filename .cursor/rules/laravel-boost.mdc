@@ -1,0 +1,56 @@
+---
+description: Laravel Boost MCP guidelines — docs search, artisan, tinker, testing
+alwaysApply: true
+---
+
+# Laravel Boost Guidelines
+
+Curated by Laravel maintainers. Follow closely when building on this stack.
+
+## Stack versions
+
+- php 8.4 · laravel/framework v12 · laravel/sanctum v4 · laravel/breeze v2
+- laravel/pint v1 · phpunit/phpunit v11 · alpinejs v3 · tailwindcss v3
+
+## Laravel Boost MCP
+
+- Use Boost tools: `search-docs`, `list-artisan-commands`, `tinker`, `database-query`, `get-absolute-url`, `browser-logs`.
+- **search-docs first** for Laravel-ecosystem questions — pass broad topic queries, not package versions.
+- Use `list-artisan-commands` before calling unfamiliar Artisan commands.
+- Use `tinker` to debug PHP; `database-query` for read-only DB checks.
+
+## PHP & Laravel conventions
+
+- Constructor property promotion; explicit return types on all methods.
+- Use `php artisan make:` with `--no-interaction` for new files.
+- Form Request classes for validation — check siblings for array vs string rules.
+- Eloquent relationships with return type hints; eager load to prevent N+1.
+- Prefer `Model::query()` over `DB::`.
+- `config()` only — never `env()` outside config files.
+- Queued jobs (`ShouldQueue`) for time-consuming work.
+
+## Laravel 12 structure
+
+- Middleware registered in `bootstrap/app.php`, not `app/Http/Middleware/` registration files.
+- No `app/Console/Kernel.php` — use `routes/console.php`.
+- Commands in `app/Console/Commands/` auto-register.
+- Column migrations must re-declare all existing attributes when modifying.
+
+## Testing (PHPUnit)
+
+- `php artisan make:test --phpunit <name>` — no Pest.
+- Every change must be tested; run minimal filter after edits.
+- `php artisan test` · `php artisan test tests/Feature/FooTest.php` · `--filter=testName`
+- Do not remove tests without approval.
+
+## Pint & frontend
+
+- Run `vendor/bin/pint --dirty` before finalizing.
+- Tailwind v3 only; use `gap-*` not margins for flex/grid spacing.
+- Match existing dark mode patterns with `dark:` when present.
+- UI not updating? suggest `npm run build`, `npm run dev`, or `composer run dev`.
+
+## Replies
+
+- Be concise — skip obvious explanations.
+- Only create documentation files when explicitly requested.

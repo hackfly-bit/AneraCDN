@@ -1,45 +1,24 @@
 <div>
-    <p class="text-muted mb-4">
-        {{ __('Ensure your account is using a long, random password to stay secure.') }}
-    </p>
+    <p class="text-slate-600 dark:text-slate-400 mb-4">{{ __('Ensure your account is using a long, random password to stay secure.') }}</p>
 
-    <form method="post" action="{{ route('password.update') }}">
+    <form method="post" action="{{ route('password.update') }}" class="space-y-4">
         @csrf
         @method('put')
-
-        <div class="mb-3">
-            <label for="update_password_current_password" class="form-label">{{ __('Current Password') }}</label>
-            <input type="password" class="form-control @error('current_password', 'updatePassword') is-invalid @enderror" 
-                   id="update_password_current_password" name="current_password" autocomplete="current-password">
-            @error('current_password', 'updatePassword')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
+        @foreach([
+            ['id' => 'update_password_current_password', 'name' => 'current_password', 'label' => __('Current Password'), 'error' => 'current_password'],
+            ['id' => 'update_password_password', 'name' => 'password', 'label' => __('New Password'), 'error' => 'password'],
+            ['id' => 'update_password_password_confirmation', 'name' => 'password_confirmation', 'label' => __('Confirm Password'), 'error' => 'password_confirmation'],
+        ] as $field)
+        <div>
+            <label for="{{ $field['id'] }}" class="block text-sm font-medium mb-1">{{ $field['label'] }}</label>
+            <input type="password" id="{{ $field['id'] }}" name="{{ $field['name'] }}" autocomplete="{{ $field['name'] === 'current_password' ? 'current-password' : 'new-password' }}"
+                class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm @error($field['error'], 'updatePassword') border-red-500 @enderror">
+            @error($field['error'], 'updatePassword')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
         </div>
-
-        <div class="mb-3">
-            <label for="update_password_password" class="form-label">{{ __('New Password') }}</label>
-            <input type="password" class="form-control @error('password', 'updatePassword') is-invalid @enderror" 
-                   id="update_password_password" name="password" autocomplete="new-password">
-            @error('password', 'updatePassword')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="mb-3">
-            <label for="update_password_password_confirmation" class="form-label">{{ __('Confirm Password') }}</label>
-            <input type="password" class="form-control @error('password_confirmation', 'updatePassword') is-invalid @enderror" 
-                   id="update_password_password_confirmation" name="password_confirmation" autocomplete="new-password">
-            @error('password_confirmation', 'updatePassword')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="d-flex align-items-center gap-3">
-            <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
-
-            @if (session('status') === 'password-updated')
-                <small class="text-success">{{ __('Saved.') }}</small>
-            @endif
+        @endforeach
+        <div class="flex items-center gap-3">
+            <button type="submit" class="inline-flex px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">{{ __('Save') }}</button>
+            @if (session('status') === 'password-updated')<span class="text-sm text-emerald-600 dark:text-emerald-400">{{ __('Saved.') }}</span>@endif
         </div>
     </form>
 </div>

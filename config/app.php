@@ -136,5 +136,7 @@ return [
 
     'allowed_file_types' => env('ALLOWED_FILE_TYPES', 'jpg,jpeg,png,gif,webp,mp4,avi,mov,pdf,doc,docx,txt,zip,rar,7z,mp3,wav,flac'),
     'max_file_size' => env('MAX_FILE_SIZE', 104857600), // 100MB in bytes
+    'cdn_url' => env('CDN_URL', env('APP_URL')),
+    'api_register_enabled' => env('API_REGISTER_ENABLED', false),
 
 ];
